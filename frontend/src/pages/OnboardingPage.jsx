@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { completeOnboarding } from "../lib/api";
-import { CameraIcon, LoaderIcon, MapPinIcon, ShipWheelIcon, ShuffleIcon } from "lucide-react";
+import { completeOnboarding, updateProfile } from "../lib/api";
+import { ArrowLeftIcon, CameraIcon, LoaderIcon, MapPinIcon, ShipWheelIcon, ShuffleIcon } from "lucide-react";
 import { LANGUAGES } from "../constants";
 
 const OnboardingPage = () => {
@@ -13,31 +13,44 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
 
   const [formState, setFormState] = useState({
-    fullName: authUser?.fullName || "",
-    bio: authUser?.bio || "",
-    nativeLanguage: authUser?.nativeLanguage || "",
-    learningLanguage: authUser?.learningLanguage || "",
-    location: authUser?.location || "",
-    profilePic: authUser?.profilePic || "",
+    fullName: "",
+    bio: "",
+    nativeLanguage: "",
+    learningLanguage: "",
+    location: "",
+    profilePic: "",
   });
 
-  const { mutate: onboardingMutation, isPending } = useMutation({
-    mutationFn: completeOnboarding,
+  useEffect(() => {
+    if (!authUser) return;
+    setFormState({
+      fullName: authUser.fullName || "",
+      bio: authUser.bio || "",
+      nativeLanguage: authUser.nativeLanguage || "",
+      learningLanguage: authUser.learningLanguage || "",
+      location: authUser.location || "",
+      profilePic: authUser.profilePic || "",
+    });
+  }, [authUser]);
+
+  const isEditing = !!authUser?.isOnboarded;
+
+  const { mutate: saveProfile, isPending } = useMutation({
+    mutationFn: (payload) => (isEditing ? updateProfile(payload) : completeOnboarding(payload)),
     onSuccess: (data) => {
-      toast.success("Profile onboarded successfully");
+      toast.success(isEditing ? "Profile updated successfully" : "Profile onboarded successfully");
       queryClient.setQueryData(["authUser"], { success: true, user: data.user });
       navigate("/");
     },
-
     onError: (error) => {
-      toast.error(error.response.data.message);
+      toast.error(error?.response?.data?.message || "Something went wrong");
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    onboardingMutation(formState);
+    saveProfile(formState);
   };
 
   const handleRandomAvatar = () => {
@@ -53,7 +66,20 @@ const OnboardingPage = () => {
     <div className="min-h-screen bg-base-100 flex items-center justify-center p-4">
       <div className="card bg-base-200 w-full max-w-3xl shadow-xl">
         <div className="card-body p-6 sm:p-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">Complete Your Profile</h1>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigate("/")}
+            >
+              <ArrowLeftIcon className="size-4 mr-1" />
+              <span>Back</span>
+            </button>
+            <h1 className="text-2xl sm:text-3xl font-bold text-center flex-1">
+              {isEditing ? "Edit Your Profile" : "Complete Your Profile"}
+            </h1>
+            <div className="w-12" /> {/* spacer to balance back button */}
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* PROFILE PIC CONTAINER */}
@@ -173,17 +199,16 @@ const OnboardingPage = () => {
             </div>
 
             {/* SUBMIT BUTTON */}
-
             <button className="btn btn-primary w-full" disabled={isPending} type="submit">
               {!isPending ? (
                 <>
                   <ShipWheelIcon className="size-5 mr-2" />
-                  Complete Onboarding
+                  {isEditing ? "Save Profile" : "Complete Onboarding"}
                 </>
               ) : (
                 <>
                   <LoaderIcon className="animate-spin size-5 mr-2" />
-                  Onboarding...
+                  {isEditing ? "Saving..." : "Onboarding..."}
                 </>
               )}
             </button>

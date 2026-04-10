@@ -29,6 +29,11 @@ export const completeOnboarding = async (userData) => {
   return response.data;
 };
 
+export const updateProfile = async (userData) => {
+  const response = await axiosInstance.put("/users/profile", userData);
+  return response.data;
+};
+
 export async function getUserFriends() {
   const response = await axiosInstance.get("/users/friends");
   const data = response.data;
@@ -67,5 +72,14 @@ export async function acceptFriendRequest(requestId) {
 
 export async function getStreamToken() {
   const response = await axiosInstance.get("/chat/token");
+  return response.data;
+}
+
+export async function sendTranslatedMessage({ channelId, targetUserId, text }) {
+  const response = await axiosInstance.post("/chat/send", {
+    channelId,
+    targetUserId,
+    text,
+  });
   return response.data;
 }

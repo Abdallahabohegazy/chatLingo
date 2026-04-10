@@ -1,11 +1,12 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
-import { BellIcon, LogOutIcon, MessageCircleIcon } from "lucide-react";
+import { BellIcon, LogOutIcon, MessageCircleIcon, Settings2Icon } from "lucide-react";
 import ThemeSelector from "./ThemeSelector";
 import useLogout from "../hooks/useLogout";
 
 const Navbar = () => {
   const { authUser } = useAuthUser();
+  const navigate = useNavigate();
   const location = useLocation();
   const isChatPage = location.pathname?.startsWith("/chat");
 
@@ -44,6 +45,16 @@ const Navbar = () => {
           {/* TODO */}
           <ThemeSelector />
 
+          {/* Edit profile button */}
+          <button
+            className="btn btn-ghost gap-2 hidden sm:inline-flex"
+            onClick={() => navigate("/onboarding")}
+          >
+            <Settings2Icon className="h-4 w-4" />
+            <span className="hidden md:inline">Edit Profile</span>
+          </button>
+
+          {/* Avatar */}
           <div className="avatar">
             <div className="w-9 rounded-full">
               <img src={authUser?.profilePic} alt="User Avatar" rel="noreferrer" />

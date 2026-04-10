@@ -34,3 +34,5 @@ export const generateStreamToken = (userId) => {
         return null;
     }
 };
+
+export const getStreamClient = () => streamClient;

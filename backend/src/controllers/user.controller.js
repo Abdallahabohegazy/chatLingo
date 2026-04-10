@@ -1,7 +1,6 @@
 import FriendRequest from "../models/friendRequest.js";
 import User from "../models/User.js";
 
-
 export async function getRecommendedUsers(req, res) {
     try {
         const currentUsserId = req.user.id;
@@ -149,6 +148,38 @@ export async function getOutGoingFriendRequests(req, res) {
         res.status(200).json(outGoingRequests);
     }catch(error){ 
         console.log("Error in getOutGoingFriendRequests controller:", error.message);
+        res.status(500).json({ message: "Internal Server error" });
+    }
+}
+
+export async function updateProfile(req, res) {
+    try {
+        const userId = req.user.id;
+        const { fullName, bio, nativeLanguage, learningLanguage, location, profilePic } = req.body;
+
+        const updateData = {};
+
+        if (typeof fullName === "string") updateData.fullName = fullName;
+        if (typeof bio === "string") updateData.bio = bio;
+        if (typeof nativeLanguage === "string") updateData.nativeLanguage = nativeLanguage;
+        if (typeof learningLanguage === "string") updateData.learningLanguage = learningLanguage;
+        if (typeof location === "string") updateData.location = location;
+        if (typeof profilePic === "string") {
+            updateData.profilePic = profilePic;
+            updateData.avatar = profilePic;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+            new: true,
+        }).select("-password");
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ success: true, user: updatedUser });
+    } catch (error) {
+        console.log("Error in updateProfile controller:", error.message);
         res.status(500).json({ message: "Internal Server error" });
     }
 }

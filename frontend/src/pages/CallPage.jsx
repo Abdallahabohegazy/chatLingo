@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +24,9 @@ const CallPage = () => {
   const [client, setClient] = useState(null);
   const [call, setCall] = useState(null);
   const [isConnecting, setIsConnecting] = useState(true);
+  const joinedRef = useRef(false);
+  const callRef = useRef(null);
+  const clientRef = useRef(null);
 
   const { authUser, isLoading } = useAuthUser();
 
@@ -43,11 +46,14 @@ const CallPage = () => {
   useEffect(() => {
     const initCall = async () => {
       if (!tokenData?.token || !authUser || !callId) return;
+      if (joinedRef.current) return;
+      joinedRef.current = true;
 
       const streamApiKey = tokenData.streamApiKey || import.meta.env.VITE_STREAM_API_KEY;
       if (!streamApiKey) {
         toast.error("Video call is not configured.");
         setIsConnecting(false);
+        joinedRef.current = false;
         return;
       }
 
@@ -67,17 +73,30 @@ const CallPage = () => {
         const callInstance = videoClient.call("default", callId);
         await callInstance.join({ create: true });
 
+        callRef.current = callInstance;
+        clientRef.current = videoClient;
         setClient(videoClient);
         setCall(callInstance);
       } catch (error) {
         console.error("Error joining call:", error);
         toast.error("Could not join the call. Please try again.");
+        joinedRef.current = false;
       } finally {
         setIsConnecting(false);
       }
     };
 
     initCall();
+
+    return () => {
+      joinedRef.current = false;
+      const c = callRef.current;
+      const v = clientRef.current;
+      callRef.current = null;
+      clientRef.current = null;
+      if (c) c.leave().catch(() => {});
+      if (v) v.disconnectUser().catch(() => {});
+    };
   }, [tokenData, authUser, callId]);
 
   if (isLoading || isConnecting) return <PageLoader />;
@@ -104,10 +123,17 @@ const CallPage = () => {
 const CallContent = () => {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
-
   const navigate = useNavigate();
 
-  if (callingState === CallingState.LEFT) return navigate("/");
+  useEffect(() => {
+    if (callingState === CallingState.LEFT) {
+      navigate("/", { replace: true });
+    }
+  }, [callingState, navigate]);
+
+  if (callingState === CallingState.LEFT) {
+    return null;
+  }
 
   return (
     <StreamTheme>
