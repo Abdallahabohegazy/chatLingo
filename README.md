@@ -130,6 +130,58 @@ npm run dev
 
 ---
 
+## 🔐 Authentication Workflow
+
+The app uses JWT-based authentication with an HTTP-only cookie:
+
+1. User submits **signup** or **login** from the client.
+2. Backend validates input and talks to MongoDB.
+3. If valid, backend creates a JWT and sets it in the `jwt` cookie.
+4. Protected routes validate that cookie on each request.
+5. If token is valid, access is granted; otherwise an error is returned.
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant B as Button/UI
+    participant C as Client
+    participant A as API Gateway (Express)
+    participant D as Database (MongoDB)
+    participant J as JWT Service
+
+    U->>B: Clicks signup/login
+    B->>C: Trigger request
+    C->>A: POST /api/auth/signup or /api/auth/login
+
+    alt signup
+        A->>D: Create user
+        D-->>A: User created
+    else login
+        A->>D: Validate credentials
+        D-->>A: Credentials valid
+    end
+
+    A->>J: Generate JWT
+    J-->>A: JWT generated
+    A-->>C: Set JWT cookie (httpOnly)
+    C-->>U: Show success
+
+    loop subsequent protected requests
+        U->>C: Initiate action
+        C->>A: Request with JWT cookie
+        A->>J: Validate JWT
+        J-->>A: Validation result
+        alt valid JWT
+            A-->>C: Grant access
+        else invalid JWT
+            A-->>C: Return auth error
+        end
+        C-->>U: Response
+    end
+```
+
+---
+
 ## 🧪 Useful Scripts
 
 ### Root
